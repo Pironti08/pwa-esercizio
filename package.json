@@ -1,7 +1,11 @@
 {
   "name": "mini-sheet-pwa",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Mini-Foglio di Calcolo (PWA) — solo per eseguire i test del motore con Node: npm test",
-  "scripts": { "test": "node --test tests/engine.test.js" }
+  "description": "Mini-Foglio di Calcolo (PWA) — motore di calcolo e UI in JavaScript vanilla",
+  "scripts": {
+    "test": "node tests/engine.test.mjs",
+    "start": "python3 -m http.server 8080"
+  }
 }

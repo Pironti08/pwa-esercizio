@@ -1,59 +1,117 @@
+/*
+ * style.css — layout dell'app. Bootstrap (./vendor/bootstrap.min.css) fornisce bottoni, form e utility;
+ * qui c'è tutto ciò che riguarda la griglia virtualizzata.
+ *
+ * Misure in variabili CSS: app.js le legge all'avvio, quindi i media query qui sotto
+ * cambiano anche i calcoli di virtualizzazione (celle un po' più alte su touch).
+ */
 :root {
-  --cell-w: 96px; --cell-h: 28px; --hdr-w: 48px; --hdr-h: 28px;
-  --ink: #16202c; --muted: #5b6878; --grid: #dbe2ea; --hdr: #edf1f6; --hdr-active: #cddcf8;
-  --accent: #2457c5; --accent-soft: #f2f6fd; --err: #b42318;
-  color-scheme: light;
+  --ink: #1d2321;
+  --muted: #5b665f;
+  --head: #eef2ee;
+  --head-active: #cfe6dc;
+  --line: #d5dbd5;
+  --accent: #1b6b5a;
+  --band: rgba(27, 107, 90, 0.07);
+  --err: #b3261e;
+
+  --col-w: 96px;   /* larghezza cella */
+  --row-h: 28px;   /* altezza cella */
+  --rh-w: 52px;    /* larghezza intestazione di riga (1…100) */
+  --ch-h: 28px;    /* altezza intestazione di colonna (A…CV) */
 }
-@media (max-width: 575.98px) { :root { --cell-w: 84px; --cell-h: 38px; --hdr-w: 40px; --hdr-h: 34px; } }
+@media (max-width: 576px), (pointer: coarse) {
+  :root { --col-w: 88px; --row-h: 36px; --rh-w: 42px; --ch-h: 34px; }
+}
 
-html, body { height: 100%; margin: 0; overscroll-behavior: none; }
-body { color: var(--ink); background: #fff; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink); background: #fff;
+  overscroll-behavior: none;
+  padding-top: env(safe-area-inset-top);
+}
 
-/* Struttura a colonna: barra strumenti, barra formula, foglio (occupa lo spazio che resta), stato */
-.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
-.toolbar { background: #fff; border-bottom: 1px solid var(--grid); padding-top: max(.5rem, env(safe-area-inset-top)) !important; }
-.fxbar { background: #fff; border-bottom: 1px solid var(--grid); }
-.fxbar .form-control { font-variant-numeric: tabular-nums; }
-.namebox { width: 5.5rem; flex: none; text-align: center; font-weight: 600; }
-.fx-label { color: var(--accent); font-style: italic; font-weight: 600; }
-.statusbar { border-top: 1px solid var(--grid); font-size: .82rem; min-height: 2rem; }
-#status.err { color: var(--err); font-weight: 600; }
+/* ── barre superiori e inferiore ── */
+.toolbar, .formulabar, .statusbar { flex: 0 0 auto; background: #fafbfa; }
+.brand { color: var(--accent); white-space: nowrap; }
+.tools { overflow-x: auto; scrollbar-width: none; }
+.tools::-webkit-scrollbar { display: none; }
+.tools .btn { white-space: nowrap; }
+.tools-sep { flex: 0 0 1px; background: var(--line); margin: 2px 4px; }
+.formulabar .fx { font-style: italic; color: var(--muted); }
+#nameBox { width: 5.5rem; flex: 0 0 auto; text-align: center; font-weight: 600; }
+.statusbar { font-size: 12px; color: var(--muted); padding-bottom: calc(0.25rem + env(safe-area-inset-bottom)) !important; }
+#statusCell { flex: 0 1 auto; max-width: 60%; }
+#statusCell.has-error { color: var(--err); font-weight: 600; }
+#netBadge { flex: 0 0 auto; }
 
-/* Foglio: angolo + intestazioni (fuori dallo scroll, sincronizzate via JS) + viewport scorrevole */
-.sheet { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--hdr-w) minmax(0, 1fr); grid-template-rows: var(--hdr-h) minmax(0, 1fr); }
-.corner, .colhdr, .rowhdr { background: var(--hdr); }
-.corner { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
-.colhdr, .rowhdr { position: relative; overflow: hidden; }
-.colhdr .inner { position: absolute; left: 0; top: 0; height: 100%; will-change: transform; }
-.rowhdr .inner { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+/* ── area scorrevole ── */
+#viewport {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  overflow: auto; background: #fff;
+  -webkit-overflow-scrolling: touch;
+  outline: none;
+}
+#viewport:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+#sizer { position: relative; }   /* larghezza/altezza impostate da app.js = dimensione reale del foglio */
+
+/* intestazioni "appiccicose": restano visibili mentre si scorre, senza JavaScript */
+#colHdrs { position: sticky; top: 0; z-index: 5; height: var(--ch-h); background: var(--head); }
+#corner {
+  position: sticky; left: 0; z-index: 6;
+  width: var(--rh-w); height: var(--ch-h); box-sizing: border-box;
+  background: var(--head); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+#colHdrInner { position: absolute; left: var(--rh-w); top: 0; right: 0; height: 100%; }
+#rowHdrs { position: sticky; left: 0; z-index: 4; width: var(--rh-w); background: var(--head); }
+
 .ch, .rh {
   position: absolute; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
-  font-size: .78rem; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none;
-  border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid);
+  background: var(--head); color: var(--muted); font-weight: 600; user-select: none; cursor: default;
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
-.ch { top: 0; height: 100%; width: var(--cell-w); }
-.rh { left: 0; width: 100%; height: var(--cell-h); }
-.ch.active, .rh.active { background: var(--hdr-active); color: var(--accent); }
+.ch { top: 0; width: var(--col-w); height: 100%; }
+.rh { left: 0; width: 100%; height: var(--row-h); }
+.ch.active, .rh.active { background: var(--head-active); color: var(--accent); }
 
-.viewport { position: relative; overflow: auto; outline: none; -webkit-overflow-scrolling: touch; }
-.viewport:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
-.spacer { position: relative; }
-.cells { position: absolute; inset: 0; }
-
-/* Cella: posizione (left/top) impostata via JS, dimensioni dalle variabili CSS */
+/* ── celle ── */
+#cells { position: absolute; left: var(--rh-w); top: var(--ch-h); }
 .cell {
-  position: absolute; box-sizing: border-box; width: var(--cell-w); height: var(--cell-h);
-  padding: 0 6px; line-height: calc(var(--cell-h) - 1px); font-size: .9rem; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; user-select: none; font-variant-numeric: tabular-nums;
-  border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid);
+  position: absolute; box-sizing: border-box;
+  width: var(--col-w); height: var(--row-h); padding: 0 6px;
+  line-height: calc(var(--row-h) - 1px);
+  background: #fff; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums; user-select: none;
 }
-.cell[data-t="n"] { text-align: right; }
-.cell[data-t="b"] { text-align: center; }
-.cell[data-t="e"] { text-align: center; color: var(--err); font-weight: 600; }
-.cell.line { background: var(--accent-soft); }                       /* riga e colonna della cella corrente */
-.cell.sel { background: #fff; outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
+.cell.n { text-align: right; }
+.cell.b { text-align: center; }
+.cell.e { text-align: center; color: var(--err); font-weight: 600; }
 
-.editor {
-  position: absolute; z-index: 5; box-sizing: border-box; padding: 0 6px; font: inherit; font-size: .9rem;
-  background: #fff; border: 2px solid var(--accent); outline: none; font-variant-numeric: tabular-nums;
+/* evidenziazione: riga e colonna correnti (fasce trasparenti) + cella selezionata */
+#rowBand, #colBand { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; background: var(--band); }
+#rowBand { width: 100%; height: var(--row-h); }
+#colBand { height: 100%; width: var(--col-w); }
+#selBox {
+  position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; box-sizing: border-box;
+  width: var(--col-w); height: var(--row-h); border: 2px solid var(--accent);
 }
+#editor {
+  position: absolute; z-index: 4; box-sizing: border-box; height: var(--row-h);
+  margin: 0; padding: 0 6px; font: inherit; color: var(--ink); background: #fff;
+  border: 2px solid var(--accent); border-radius: 0; outline: none;
+}
+
+/* ── finestra di aiuto ── */
+dialog#help {
+  width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto;
+  border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; color: var(--ink);
+}
+dialog#help::backdrop { background: rgba(0, 0, 0, 0.35); }
+dialog#help kbd { background: var(--head); color: var(--ink); border: 1px solid var(--line); padding: 0 4px; }
+
+/* iOS: evita lo zoom automatico quando si tocca un campo di testo */
+@media (pointer: coarse) { input.form-control, #editor { font-size: 16px; } }
