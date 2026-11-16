@@ -1,0 +1,7 @@
+{
+  "name": "mini-sheet-pwa",
+  "private": true,
+  "type": "module",
+  "description": "Mini-Foglio di Calcolo (PWA) — solo per eseguire i test del motore con Node: npm test",
+  "scripts": { "test": "node --test tests/engine.test.js" }
+}
